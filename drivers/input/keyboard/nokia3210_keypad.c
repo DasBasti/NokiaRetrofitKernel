@@ -47,7 +47,7 @@
 
 #define MAX_MATRIX_KEY_NUM	(MAX_MATRIX_KEY_ROWS * MAX_MATRIX_KEY_COLS)
 
-struct imx_keypad {
+struct nokia3210_keypad {
 
 	struct clk *clk;
 	struct input_dev *input_dev;
@@ -81,7 +81,7 @@ struct imx_keypad {
 };
 
 /* Scan the matrix and return the new state in *matrix_volatile_state. */
-static void imx_keypad_scan_matrix(struct imx_keypad *keypad,
+static void nokia3210_keypad_scan_matrix(struct nokia3210_keypad *keypad,
 				  unsigned short *matrix_volatile_state)
 {
 	int col;
@@ -146,7 +146,7 @@ static void imx_keypad_scan_matrix(struct imx_keypad *keypad,
  * Compare the new matrix state (volatile) with the stable one stored in
  * keypad->matrix_stable_state and fire events if changes are detected.
  */
-static void imx_keypad_fire_events(struct imx_keypad *keypad,
+static void nokia3210_keypad_fire_events(struct nokia3210_keypad *keypad,
 				   unsigned short *matrix_volatile_state)
 {
 	struct input_dev *input_dev = keypad->input_dev;
@@ -184,11 +184,11 @@ static void imx_keypad_fire_events(struct imx_keypad *keypad,
 }
 
 /*
- * imx_keypad_check_for_events is the timer handler.
+ * nokia3210_keypad_check_for_events is the timer handler.
  */
-static void imx_keypad_check_for_events(unsigned long data)
+static void nokia3210_keypad_check_for_events(unsigned long data)
 {
-	struct imx_keypad *keypad = (struct imx_keypad *) data;
+	struct nokia3210_keypad *keypad = (struct nokia3210_keypad *) data;
 	unsigned short matrix_volatile_state[MAX_MATRIX_KEY_COLS];
 	unsigned short reg_val;
 	bool state_changed, is_zero_matrix;
@@ -196,7 +196,7 @@ static void imx_keypad_check_for_events(unsigned long data)
 
 	memset(matrix_volatile_state, 0, sizeof(matrix_volatile_state));
 
-	imx_keypad_scan_matrix(keypad, matrix_volatile_state);
+	nokia3210_keypad_scan_matrix(keypad, matrix_volatile_state);
 
 	state_changed = false;
 	for (i = 0; i < MAX_MATRIX_KEY_COLS; i++) {
@@ -240,7 +240,7 @@ static void imx_keypad_check_for_events(unsigned long data)
 	 * events have already been generated.
 	 */
 	if (keypad->stable_count == IMX_KEYPAD_SCANS_FOR_STABILITY) {
-		imx_keypad_fire_events(keypad, matrix_volatile_state);
+		nokia3210_keypad_fire_events(keypad, matrix_volatile_state);
 
 		memcpy(keypad->matrix_stable_state, matrix_volatile_state,
 			sizeof(matrix_volatile_state));
@@ -290,9 +290,9 @@ static void imx_keypad_check_for_events(unsigned long data)
 	}
 }
 
-static irqreturn_t imx_keypad_irq_handler(int irq, void *dev_id)
+static irqreturn_t nokia3210_keypad_irq_handler(int irq, void *dev_id)
 {
-	struct imx_keypad *keypad = dev_id;
+	struct nokia3210_keypad *keypad = dev_id;
 	unsigned short reg_val;
 
 	reg_val = readw(keypad->mmio_base + KPSR);
@@ -315,7 +315,7 @@ static irqreturn_t imx_keypad_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void imx_keypad_config(struct imx_keypad *keypad)
+static void nokia3210_keypad_config(struct nokia3210_keypad *keypad)
 {
 	unsigned short reg_val;
 
@@ -351,7 +351,7 @@ static void imx_keypad_config(struct imx_keypad *keypad)
 	writew(reg_val, keypad->mmio_base + KPSR);
 }
 
-static void imx_keypad_inhibit(struct imx_keypad *keypad)
+static void nokia3210_keypad_inhibit(struct nokia3210_keypad *keypad)
 {
 	unsigned short reg_val;
 
@@ -366,9 +366,9 @@ static void imx_keypad_inhibit(struct imx_keypad *keypad)
 	writew(reg_val, keypad->mmio_base + KPCR);
 }
 
-static void imx_keypad_close(struct input_dev *dev)
+static void nokia3210_keypad_close(struct input_dev *dev)
 {
-	struct imx_keypad *keypad = input_get_drvdata(dev);
+	struct nokia3210_keypad *keypad = input_get_drvdata(dev);
 
 	dev_dbg(&dev->dev, ">%s\n", __func__);
 
@@ -377,15 +377,15 @@ static void imx_keypad_close(struct input_dev *dev)
 	synchronize_irq(keypad->irq);
 	del_timer_sync(&keypad->check_matrix_timer);
 
-	imx_keypad_inhibit(keypad);
+	nokia3210_keypad_inhibit(keypad);
 
 	/* Disable clock unit */
 	clk_disable_unprepare(keypad->clk);
 }
 
-static int imx_keypad_open(struct input_dev *dev)
+static int nokia3210_keypad_open(struct input_dev *dev)
 {
-	struct imx_keypad *keypad = input_get_drvdata(dev);
+	struct nokia3210_keypad *keypad = input_get_drvdata(dev);
 	int error;
 
 	dev_dbg(&dev->dev, ">%s\n", __func__);
@@ -398,7 +398,7 @@ static int imx_keypad_open(struct input_dev *dev)
 	/* We became active from now */
 	keypad->enabled = true;
 
-	imx_keypad_config(keypad);
+	nokia3210_keypad_config(keypad);
 
 	/* Sanity control, not all the rows must be actived now. */
 	if ((readw(keypad->mmio_base + KPDR) & keypad->rows_en_mask) == 0) {
@@ -410,23 +410,23 @@ static int imx_keypad_open(struct input_dev *dev)
 	return 0;
 
 open_err:
-	imx_keypad_close(dev);
+	nokia3210_keypad_close(dev);
 	return -EIO;
 }
 
 #ifdef CONFIG_OF
-static const struct of_device_id imx_keypad_of_match[] = {
+static const struct of_device_id nokia3210_keypad_of_match[] = {
 	{ .compatible = "fsl,imx21-kpp", },
 	{ /* sentinel */ }
 };
-MODULE_DEVICE_TABLE(of, imx_keypad_of_match);
+MODULE_DEVICE_TABLE(of, nokia3210_keypad_of_match);
 #endif
 
-static int imx_keypad_probe(struct platform_device *pdev)
+static int nokia3210_keypad_probe(struct platform_device *pdev)
 {
 	const struct matrix_keymap_data *keymap_data =
 			dev_get_platdata(&pdev->dev);
-	struct imx_keypad *keypad;
+	struct nokia3210_keypad *keypad;
 	struct input_dev *input_dev;
 	struct resource *res;
 	int irq, error, i, row, col;
@@ -459,7 +459,7 @@ static int imx_keypad_probe(struct platform_device *pdev)
 	keypad->stable_count = 0;
 
 	setup_timer(&keypad->check_matrix_timer,
-		    imx_keypad_check_for_events, (unsigned long) keypad);
+		    nokia3210_keypad_check_for_events, (unsigned long) keypad);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	keypad->mmio_base = devm_ioremap_resource(&pdev->dev, res);
@@ -476,8 +476,8 @@ static int imx_keypad_probe(struct platform_device *pdev)
 	input_dev->name = pdev->name;
 	input_dev->id.bustype = BUS_HOST;
 	input_dev->dev.parent = &pdev->dev;
-	input_dev->open = imx_keypad_open;
-	input_dev->close = imx_keypad_close;
+	input_dev->open = nokia3210_keypad_open;
+	input_dev->close = nokia3210_keypad_close;
 
 	error = matrix_keypad_build_keymap(keymap_data, NULL,
 					   MAX_MATRIX_KEY_ROWS,
@@ -507,10 +507,10 @@ static int imx_keypad_probe(struct platform_device *pdev)
 
 	/* Ensure that the keypad will stay dormant until opened */
 	clk_prepare_enable(keypad->clk);
-	imx_keypad_inhibit(keypad);
+	nokia3210_keypad_inhibit(keypad);
 	clk_disable_unprepare(keypad->clk);
 
-	error = devm_request_irq(&pdev->dev, irq, imx_keypad_irq_handler, 0,
+	error = devm_request_irq(&pdev->dev, irq, nokia3210_keypad_irq_handler, 0,
 			    pdev->name, keypad);
 	if (error) {
 		dev_err(&pdev->dev, "failed to request IRQ\n");
@@ -533,7 +533,7 @@ static int imx_keypad_probe(struct platform_device *pdev)
 static int __maybe_unused imx_kbd_suspend(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
-	struct imx_keypad *kbd = platform_get_drvdata(pdev);
+	struct nokia3210_keypad *kbd = platform_get_drvdata(pdev);
 	struct input_dev *input_dev = kbd->input_dev;
 
 	/* imx kbd can wake up system even clock is disabled */
@@ -553,7 +553,7 @@ static int __maybe_unused imx_kbd_suspend(struct device *dev)
 static int __maybe_unused imx_kbd_resume(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
-	struct imx_keypad *kbd = platform_get_drvdata(pdev);
+	struct nokia3210_keypad *kbd = platform_get_drvdata(pdev);
 	struct input_dev *input_dev = kbd->input_dev;
 	int ret = 0;
 
@@ -576,17 +576,17 @@ err_clk:
 
 static SIMPLE_DEV_PM_OPS(imx_kbd_pm_ops, imx_kbd_suspend, imx_kbd_resume);
 
-static struct platform_driver imx_keypad_driver = {
+static struct platform_driver nokia3210_keypad_driver = {
 	.driver		= {
-		.name	= "imx-keypad",
+		.name	= "nokia2310-keypad",
 		.pm	= &imx_kbd_pm_ops,
-		.of_match_table = of_match_ptr(imx_keypad_of_match),
+		.of_match_table = of_match_ptr(nokia3210_keypad_of_match),
 	},
-	.probe		= imx_keypad_probe,
+	.probe		= nokia3210_keypad_probe,
 };
-module_platform_driver(imx_keypad_driver);
+module_platform_driver(nokia3210_keypad_driver);
 
-MODULE_AUTHOR("Alberto Panizzo <maramaopercheseimorto@gmail.com>");
-MODULE_DESCRIPTION("IMX Keypad Port Driver");
+MODULE_AUTHOR("Bastian Neumann <neumann.bastian@gmail.com>");
+MODULE_DESCRIPTION("Nokia2310 Keypad Port Driver");
 MODULE_LICENSE("GPL v2");
-MODULE_ALIAS("platform:imx-keypad");
+MODULE_ALIAS("platform:nokia3210-keypad");
