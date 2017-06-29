@@ -1,6 +1,6 @@
 /*
- * Driver for the IMX keypad port.
- * Copyright (C) 2009 Alberto Panizzo <maramaopercheseimorto@gmail.com>
+ * Driver for the Nokia3210 keypad port.
+ * Copyright (C) 2017 Bastian Neumann neumann.bastian@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -41,8 +41,8 @@
 #define KDDR		0x04 /* Keypad Data Direction Register */
 #define KPDR		0x06 /* Keypad Data Register */
 
-#define MAX_MATRIX_KEY_ROWS	8
-#define MAX_MATRIX_KEY_COLS	8
+#define MAX_MATRIX_KEY_ROWS	4
+#define MAX_MATRIX_KEY_COLS	4
 #define MATRIX_ROW_SHIFT	3
 
 #define MAX_MATRIX_KEY_NUM	(MAX_MATRIX_KEY_ROWS * MAX_MATRIX_KEY_COLS)

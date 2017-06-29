@@ -421,6 +421,16 @@ config KEYBOARD_IMX
 	  To compile this driver as a module, choose M here: the
 	  module will be called imx_keypad.
 
+config KEYBOARD_NOKIA3210
+	tristate "Nokia3210 keypad support"
+	depends on ARCH_MXC
+	select INPUT_MATRIXKMAP
+	help
+	  Enable support for IMX keypad port.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called nokia3210_keypad.
+
 config KEYBOARD_NEWTON
 	tristate "Newton keyboard"
 	select SERIO
